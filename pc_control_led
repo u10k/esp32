@@ -1,0 +1,55 @@
+def do_connect():
+    """
+    作用：链接wifi网络
+    https://docs.micropython.org/en/latest/esp32/quickref.html#networking
+    """
+    import network
+    import time
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    if not wlan.isconnected():
+        print('connecting to network...')
+        wlan.connect('Xiaomi_9B78', 'xxxxxxx')
+        while not wlan.isconnected():
+            print('正在连接网络...')
+            time.sleep(1)
+            pass
+    print('network config:', wlan.ifconfig())
+
+def creat_udp_socket():
+    import socket
+    # 1. 创建udp套接字
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # 2.绑定固定端口
+    udp_socket.bind(("0.0.0.0", 8989))
+    return udp_socket
+
+def main():
+    #1.让esp32连接wifi,让其拥有ip地址
+    do_connect()
+    
+    #2.创建udp socket
+    udp_socket = creat_udp_socket()
+    
+    #3.接收udp数据
+    while True:
+        recv_data, sender_info = udp_socket.recvfrom(1024)
+        print("{}发送{}".format(sender_info, recv_data))
+        recv_data_str = recv_data.decode("utf-8")
+        try:
+            print(recv_data_str)
+        except Exception as ret:
+            print("error:", ret)
+    #4.根据接受到的udp数据控制led灯的亮灭
+        # 3. 创建灯对象
+        import machine
+        led = machine.Pin(2, machine.Pin.OUT)
+        if recv_data_str == "light on":
+            print("这里是要灯亮的代码...")
+            led.value(1)
+        elif recv_data_str == "light off":
+            print("这里是要灯灭的代码...")
+            led.value(0)
+
+if __name__ == "__main__":
+    main()
